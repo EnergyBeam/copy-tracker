@@ -1,0 +1,50 @@
+[
+  {
+    "chain": "solana",
+    "wallet": "DEMO_NEW_WALLET",
+    "tx_id": "demo-7-12",
+    "event_index": 0,
+    "token": "DEMO_A",
+    "side": "BUY",
+    "ts": "2026-09-07T12:00:00Z",
+    "quantity": "10",
+    "price_usd": "1",
+    "fee_usd": "0.01"
+  },
+  {
+    "chain": "solana",
+    "wallet": "DEMO_NEW_WALLET",
+    "tx_id": "demo-7-13",
+    "event_index": 0,
+    "token": "DEMO_A",
+    "side": "SELL",
+    "ts": "2026-09-07T13:00:00Z",
+    "quantity": "10",
+    "price_usd": "3",
+    "fee_usd": "0.01"
+  },
+  {
+    "chain": "solana",
+    "wallet": "DEMO_NEW_WALLET",
+    "tx_id": "demo-8-12",
+    "event_index": 0,
+    "token": "DEMO_B",
+    "side": "BUY",
+    "ts": "2026-09-08T12:00:00Z",
+    "quantity": "10",
+    "price_usd": "1",
+    "fee_usd": "0.01"
+  },
+  {
+    "chain": "solana",
+    "wallet": "DEMO_NEW_WALLET",
+    "tx_id": "demo-8-13",
+    "event_index": 0,
+    "token": "DEMO_B",
+    "side": "SELL",
+    "ts": "2026-09-08T13:00:00Z",
+    "quantity": "10",
+    "price_usd": "3",
+    "fee_usd": "0.01"
+  }
+]

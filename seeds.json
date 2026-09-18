@@ -1,0 +1,52 @@
+[
+  {
+    "chain": "solana",
+    "address": "4UwK5AE6Djdf3MfwtPGE8pFYD47MhU9fiStDVmSHJVMB",
+    "role": "Negative control для copyability: profitable scalper."
+  },
+  {
+    "chain": "solana",
+    "address": "4Be9CvxqHW6BYiRAxW9Q3xu1ycTMWaL5z8NX4HR3ha7t",
+    "role": "Creator/dev copyability penalty test."
+  },
+  {
+    "chain": "solana",
+    "address": "9jyqFiLnruggwNn4EQwBNFXwpbLM9hrA4hV59ytyAVVz",
+    "role": "Stale-leaderboard / decay test."
+  },
+  {
+    "chain": "solana",
+    "address": "H72yLkhTnoBfhBTXXaj1RBXuirm8s8G5fcVh2XpQLggM",
+    "role": "Fresh validation candidate."
+  },
+  {
+    "chain": "solana",
+    "address": "EdDCRfDDeiiDXdntrP59abH4DXHFNU48zpMPYisDMjA7",
+    "role": "Fresh validation candidate."
+  },
+  {
+    "chain": "robinhood",
+    "address": "0x7e3ba68c49561aae7c23c1d20fef0f1d7615a3ad",
+    "role": "Repeat-hit / runner / rotation model."
+  },
+  {
+    "chain": "robinhood",
+    "address": "0xde4c44e841972c2c4db1b1e27a353340fe9899de",
+    "role": "Dormant/rotated alpha → child-wallet discovery."
+  },
+  {
+    "chain": "robinhood",
+    "address": "0x4a5b304ded44a521ffece44a6386fa2014d96f7d",
+    "role": "Whale impact / concentration test."
+  },
+  {
+    "chain": "robinhood",
+    "address": "0xeee29d1a6fa5873065ad8789c6e15231b48318a0",
+    "role": "Extreme early-entry + partial-exit case."
+  },
+  {
+    "chain": "robinhood",
+    "address": "0x32c34a18cc5fd58c0ece1e472e9bf95de8906a8a",
+    "role": "Related-address clustering case."
+  }
+]
