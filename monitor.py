@@ -35,7 +35,16 @@ def enrich(db,client):
         e=json.loads(r['evidence'])
         if 'history_metrics' not in e:
             from history_metrics import fetch_history
-            e['history_metrics']=fetch_history(client,e['wallet'])
+            e['history_metrics']=fetch_history(client,e['wallet'],db)
+        with db:db.execute('UPDATE gmgn_candidates SET evidence=? WHERE wallet=?',(json.dumps(e),e['wallet']))
+        prepare(db,e)
+
+
+def refresh_pending_history(db,client):
+    from history_metrics import fetch_history
+    row=db.execute("SELECT c.evidence FROM gmgn_candidates c JOIN ai_reviews a ON c.wallet=a.wallet WHERE a.state='pending' AND c.state='history_review' AND COALESCE(julianday(json_extract(c.evidence,'$.history_metrics.history_fetched_at')),julianday(c.last_checked)) < julianday('now')-0.25 ORDER BY COALESCE(json_extract(c.evidence,'$.history_metrics.history_fetched_at'),c.last_checked) LIMIT 1").fetchone()
+    if row:
+        e=json.loads(row['evidence']);e['history_metrics']=fetch_history(client,e['wallet'],db)
         with db:db.execute('UPDATE gmgn_candidates SET evidence=? WHERE wallet=?',(json.dumps(e),e['wallet']))
         prepare(db,e)
 
@@ -93,6 +102,7 @@ def run(once=False):
                     outcome=review(db,client,limit=policy['batch'])
                     if outcome['error']:raise GMGNError(outcome['error'])
                     status('preparing_alerts');enrich(db,client)
+                    refresh_pending_history(db,client)
                     sent=flush(db);failures=0
                     status('idle',pending=outcome['pending'],telegram_sent=sent,workload=policy)
                     logger.info('Cycle reviewed=%s pending=%s sent=%s',outcome['reviewed'],outcome['pending'],sent)

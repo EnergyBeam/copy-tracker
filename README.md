@@ -55,3 +55,6 @@ python -m unittest discover
 Основные модули: `monitor.py` — фоновый цикл; `gmgn_review.py` — очередь профилей; `history_metrics.py` — закрытые позиции; `manual_review.py` — ручной разбор; `telegram_notify.py` — доставка. Правила распределения запросов описаны в `queue-policy.md`.
 
 Базы, ключи, снимки API, журналы и личные отчёты исключены из Git.
+
+## Persistent history
+Activity pages are cached per wallet in SQLite with deduplication. Each fetch reads the latest page and continues older history from the saved cursor, up to three requests. Pending dossiers are refreshed one per monitor cycle when older than six hours. Provider stats timestamps remain unchanged. Pagination exhaustion does not prove full on-chain history; polling may miss activity between snapshots. GMGN returned 20 events per page in the live verification despite limit=100.

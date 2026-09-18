@@ -53,7 +53,7 @@ def review(db,client,limit=1):
             history=None
             current=assess(observations,s7,s30)
             if current['reasons']==['REALIZED_MULTI_HIT_NOT_CONFIRMED']:
-                history=fetch_history(client,wallet)
+                history=fetch_history(client,wallet,db)
                 current=assess(observations,s7,s30,history['profitable_token_addresses'])
                 if current['state']=='observing':
                     current['reasons']=['HISTORY_REPEATABILITY_INSUFFICIENT']

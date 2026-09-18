@@ -44,17 +44,52 @@ def closed_metrics(activities,complete=False):
             'history_complete':complete,'activity_records':len(seen),'basis':'closed position proceeds / acquisition cost; gas_usd + dex_usd; bounded sample'}
 
 
-def fetch_history(client,wallet):
+def event_key(row):
+    import hashlib,json
+    # Match the metric dedup identity; avoid counting repeated pages as trades.
+    fields=(row.get('tx_hash'),row.get('event_type'),(row.get('token') or {}).get('address'),str(row.get('token_amount')),row.get('timestamp'))
+    return hashlib.sha256(json.dumps(fields,sort_keys=True).encode()).hexdigest()
+
+
+def fetch_history(client,wallet,db=None):
+    import json
+    from datetime import datetime,timezone
     from gmgn_scan import unwrap
     from gmgn_api import GMGNError
-    items=[];cursor=None;seen=set();complete=False
+    saved_cursor=None
+    if db is not None:
+        db.execute('CREATE TABLE IF NOT EXISTS wallet_history_cursor(wallet TEXT PRIMARY KEY,cursor TEXT)')
+        old=db.execute('SELECT cursor FROM wallet_history_cursor WHERE wallet=?',(wallet,)).fetchone()
+        saved_cursor=old[0] if old else None
+        db.execute('CREATE TABLE IF NOT EXISTS wallet_activity_cache(wallet TEXT,event_key TEXT,payload TEXT,PRIMARY KEY(wallet,event_key))')
+        db.commit()
+    items=[];cursor=None;seen=set();pages=set();stop='page_limit';count=0
     for _ in range(3):
         params={'chain':'sol','wallet_address':wallet,'limit':100}
         if cursor:params['cursor']=cursor
         data=unwrap(client.get('activity',**params))
         if not isinstance(data,dict) or not isinstance(data.get('activities'),list):raise GMGNError('Unexpected activity schema')
-        items.extend(data['activities']);cursor=data.get('next')
-        if not cursor:complete=True;break
-        if cursor in seen:break
+        rows=data['activities'];count+=1
+        fingerprint=tuple(sorted(event_key(r) for r in rows))
+        if rows and fingerprint in pages:stop='repeated_page';break
+        pages.add(fingerprint);items.extend(rows)
+        # Commit each successful page: later network failures do not lose it.
+        if db is not None:
+            with db:
+                for r in rows:
+                    db.execute('INSERT INTO wallet_activity_cache VALUES(?,?,?) ON CONFLICT(wallet,event_key) DO UPDATE SET payload=excluded.payload',(wallet,event_key(r),json.dumps(r)))
+        cursor=data.get('next')
+        if count==1 and saved_cursor:
+            cursor=saved_cursor
+        if db is not None:
+            with db:db.execute('INSERT INTO wallet_history_cursor VALUES(?,?) ON CONFLICT(wallet) DO UPDATE SET cursor=excluded.cursor',(wallet,cursor))
+        if not cursor:stop='provider_exhausted';break
+        if cursor in seen:stop='repeated_cursor';break
         seen.add(cursor)
-    return closed_metrics(items,complete)
+    downloaded=len({event_key(r) for r in items})
+    if db is not None:
+        items=[json.loads(r[0]) for r in db.execute('SELECT payload FROM wallet_activity_cache WHERE wallet=?',(wallet,))]
+    metrics=closed_metrics(items,False)
+    times=[r['timestamp'] for r in items if isinstance(r.get('timestamp'),(int,float))]
+    metrics.update(history_fetched_at=datetime.now(timezone.utc).isoformat(),history_storage='sqlite' if db is not None else 'request',pages_fetched=count,downloaded_records=downloaded,pagination_stop=stop,provider_exhausted=stop=='provider_exhausted',oldest_event_at=min(times) if times else None,newest_event_at=max(times) if times else None)
+    return metrics
