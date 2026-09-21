@@ -5,12 +5,13 @@ from pathlib import Path
 from ai_review import schema,packet,validate,prepare
 from gmgn_api import ROOT
 from tracker import connect
+from dossier_refresh import is_fresh,refresh
 from telegram_notify import enqueue,flush
 
 
 def inbox(db):
     schema(db)
-    return [{'wallet':r['wallet'],'evidence_hash':r['evidence_hash'],'state':r['state'],'dossier':json.loads(r['packet'])} for r in db.execute("SELECT * FROM ai_reviews WHERE state='pending'")]
+    return [{'wallet':r['wallet'],'evidence_hash':r['evidence_hash'],'state':r['state'],'needs_refresh':not is_fresh(json.loads(r['packet'])),'dossier':json.loads(r['packet'])} for r in db.execute("SELECT * FROM ai_reviews WHERE state='pending'")]
 
 
 def submit(db,wallet,expected_hash,result):
@@ -20,6 +21,7 @@ def submit(db,wallet,expected_hash,result):
     current=db.execute('SELECT state,evidence FROM gmgn_candidates WHERE wallet=?',(wallet,)).fetchone()
     if not current or current['state']!='history_review':raise ValueError('Candidate no longer qualified')
     e=json.loads(current['evidence'])
+    if not is_fresh(e):raise ValueError('Dossier expired or incoherent; refresh before reviewing')
     digest=hashlib.sha256(json.dumps(packet(e),ensure_ascii=False,sort_keys=True).encode()).hexdigest()
     if digest!=expected_hash:
         prepare(db,e)
@@ -33,9 +35,12 @@ def submit(db,wallet,expected_hash,result):
     return {'review_saved':True,'sent':flush(db)}
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--result-file');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--result-file');p.add_argument('--refresh-wallet');a=p.parse_args()
     with connect(ROOT/'tracker.sqlite3') as db:
-        if a.result_file:
+        if a.refresh_wallet:
+            from gmgn_api import Client
+            refresh(db,Client(),a.refresh_wallet);out=inbox(db)
+        elif a.result_file:
             r=json.loads(Path(a.result_file).read_text(encoding='utf-8-sig'))
             out=submit(db,r['wallet'],r['evidence_hash'],r['analysis'])
         else:out=inbox(db)

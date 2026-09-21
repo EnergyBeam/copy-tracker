@@ -15,7 +15,7 @@ def schema(db):
 
 
 def packet(e):
-    keys=['wallet','state','checked_at','realized_token_hits','observation_token_hits','history_token_hits','repeatability_source','tags','pending','history_metrics']
+    keys=['snapshot_version','snapshot_started_at','snapshot_completed_at','wallet','state','checked_at','realized_token_hits','observation_token_hits','history_token_hits','repeatability_source','tags','pending','history_metrics']
     p={k:e.get(k) for k in keys}
     for period in ('7d','30d'):
         s=e.get('stats_'+period) or {}

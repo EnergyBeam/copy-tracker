@@ -1,4 +1,5 @@
 import unittest,json,sqlite3
+from datetime import datetime,timezone
 from contextlib import closing
 from unittest.mock import patch
 from ai_review import prepare,validate
@@ -16,7 +17,7 @@ class ManualTests(unittest.TestCase):
    self.assertEqual(db.execute('SELECT COUNT(*) FROM telegram_outbox').fetchone()[0],0)
  def test_review_and_stale_protection(self):
   with closing(self.db()) as db:
-   e={'wallet':'a','state':'history_review','checked_at':'fixture'}
+   e={'wallet':'a','state':'history_review','checked_at':'fixture','snapshot_version':1,'snapshot_started_at':datetime.now(timezone.utc).isoformat()}
    db.execute('INSERT INTO gmgn_candidates VALUES(?,?,?)',('a','history_review',json.dumps(e)));db.commit()
    prepare(db,e);r=inbox(db)[0]
    result={'verdict':'watch','summary':'Нужна история','strengths':[],'risks':['Малая выборка'],'missing_checks':['Задержка']}

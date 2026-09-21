@@ -29,24 +29,18 @@ def lock_process():
 
 
 def enrich(db,client):
+    from dossier_refresh import refresh
     review_schema(db)
-    rows=db.execute("SELECT evidence FROM gmgn_candidates WHERE state='history_review' AND wallet NOT IN (SELECT wallet FROM telegram_outbox) AND wallet NOT IN (SELECT wallet FROM ai_reviews) LIMIT 2").fetchall()
-    for r in rows:
-        e=json.loads(r['evidence'])
-        if 'history_metrics' not in e:
-            from history_metrics import fetch_history
-            e['history_metrics']=fetch_history(client,e['wallet'],db)
-        with db:db.execute('UPDATE gmgn_candidates SET evidence=? WHERE wallet=?',(json.dumps(e),e['wallet']))
-        prepare(db,e)
+    rows=db.execute("SELECT wallet FROM gmgn_candidates WHERE state='history_review' AND wallet NOT IN (SELECT wallet FROM telegram_outbox) AND wallet NOT IN (SELECT wallet FROM ai_reviews WHERE state IN ('pending','completed')) LIMIT 2").fetchall()
+    for row in rows:refresh(db,client,row['wallet'])
 
 
 def refresh_pending_history(db,client):
-    from history_metrics import fetch_history
-    row=db.execute("SELECT c.evidence FROM gmgn_candidates c JOIN ai_reviews a ON c.wallet=a.wallet WHERE a.state='pending' AND c.state='history_review' AND COALESCE(julianday(json_extract(c.evidence,'$.history_metrics.history_fetched_at')),julianday(c.last_checked)) < julianday('now')-0.25 ORDER BY COALESCE(json_extract(c.evidence,'$.history_metrics.history_fetched_at'),c.last_checked) LIMIT 1").fetchone()
-    if row:
-        e=json.loads(row['evidence']);e['history_metrics']=fetch_history(client,e['wallet'],db)
-        with db:db.execute('UPDATE gmgn_candidates SET evidence=? WHERE wallet=?',(json.dumps(e),e['wallet']))
-        prepare(db,e)
+    from dossier_refresh import refresh,is_fresh
+    rows=db.execute("SELECT c.wallet,c.evidence FROM gmgn_candidates c JOIN ai_reviews a ON c.wallet=a.wallet WHERE a.state='pending' AND c.state='history_review' ORDER BY COALESCE(json_extract(c.evidence,'$.snapshot_started_at'),c.last_checked)").fetchall()
+    for row in rows:
+        if not is_fresh(json.loads(row['evidence'])):
+            refresh(db,client,row['wallet']);break
 
 
 def status(phase,**extra):

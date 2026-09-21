@@ -58,3 +58,6 @@ python -m unittest discover
 
 ## Persistent history
 Activity pages are cached per wallet in SQLite with deduplication. Each fetch reads the latest page and continues older history from the saved cursor, up to three requests. Pending dossiers are refreshed one per monitor cycle when older than six hours. Provider stats timestamps remain unchanged. Pagination exhaustion does not prove full on-chain history; polling may miss activity between snapshots. GMGN returned 20 events per page in the live verification despite limit=100.
+
+## Coherent manual-review snapshots
+Pending dossiers refresh 7D stats, 30D stats and cached activity together, then reapply eligibility. Failed refreshes do not replace the previous dossier. Legacy snapshots and snapshots older than six hours require refresh; manual submission rejects them. Use `python manual_review.py --refresh-wallet ADDRESS` before reviewing stale entries. The monitor refreshes one stale pending dossier per cycle under the shared API pacer. The history cache may remain incomplete.
